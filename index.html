@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LogMyTravel v21.0</title>
+    <title>LogMyTravel v22.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
@@ -47,31 +47,17 @@
             font-weight: 500;
             text-transform: uppercase;
             font-size: 0.75rem;
-            letter-spacing: 0.05em;
-        }
-
-        .modal-overlay {
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(8px);
-            z-index: 9999;
-        }
-
-        /* Correção de sintaxe CSS */
-        .flex-center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
     </style>
 </head>
 
 <body class="pb-32">
 
-    <div id="loader" class="fixed inset-0 bg-slate-900/95 z-[10000] hidden flex-center">
+    <div id="loader" class="fixed inset-0 bg-slate-900/95 z-[10000] hidden flex items-center justify-center">
         <div class="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
 
-    <section id="login-view" class="view active min-h-screen flex-center p-6 text-center">
+    <section id="login-view" class="view active min-h-screen flex items-center justify-center p-6 text-center">
         <div class="w-full max-w-sm space-y-10">
             <h1 class="text-3xl font-light tracking-widest text-white uppercase">LOGMYTRAVEL</h1>
             <form id="login-form" class="space-y-4">
@@ -79,9 +65,8 @@
                 <div class="relative">
                     <input type="password" id="auth-password" class="input-dark text-center" placeholder="Sua senha"
                         required>
-                    <button type="button" onclick="togglePass()" class="absolute right-4 top-4 text-slate-500">
-                        <i data-lucide="eye" id="pass-icon" class="w-5 h-5"></i>
-                    </button>
+                    <button type="button" onclick="togglePass()" class="absolute right-4 top-4 text-slate-500"><i
+                            data-lucide="eye" id="pass-icon" class="w-5 h-5"></i></button>
                 </div>
                 <button type="submit" class="btn-action w-full">Acessar Painel</button>
             </form>
@@ -89,7 +74,7 @@
     </section>
 
     <div id="main-app" class="hidden">
-        <header class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800 p-5">
+        <header class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 p-5">
             <div class="max-w-md mx-auto flex justify-between items-center">
                 <div class="flex items-center gap-4">
                     <button id="back-btn" onclick="closeTrip()" class="hidden text-slate-400"><i
@@ -101,7 +86,7 @@
             </div>
         </header>
 
-        <main class="max-w-md mx-auto p-5 space-y-4">
+        <main class="max-w-md mx-auto p-5">
             <div id="trips-view" class="view active space-y-4">
                 <div id="list-container" class="space-y-4"></div>
                 <button onclick="document.getElementById('import-file').click()"
@@ -109,7 +94,6 @@
                     JSON</button>
                 <input type="file" id="import-file" class="hidden" accept=".json" onchange="window.importJSON(event)">
             </div>
-
             <div id="details-view" class="view">
                 <div id="timeline-container" class="space-y-6"></div>
             </div>
@@ -123,39 +107,70 @@
 
         function loader(s) { document.getElementById('loader').classList.toggle('hidden', !s); }
 
-        // --- LOGIN SEM RELOAD ---
+        // --- LÓGICA DE TRANSIÇÃO GARANTIDA ---
+        function showDashboard() {
+            document.getElementById('login-view').classList.remove('active');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('trips-view').classList.add('active');
+            loadTrips();
+        }
+
         document.getElementById('login-form').onsubmit = async (e) => {
             e.preventDefault();
             loader(true);
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
 
+            // Tentativa de Login
             const { data, error } = await db.auth.signInWithPassword({ email, password });
+
             if (error) {
-                const { error: signUpErr } = await db.auth.signUp({ email, password });
-                if (signUpErr) alert(signUpErr.message);
-                else alert("Conta criada! Entre com sua senha.");
+                // Se o erro for de usuário não encontrado, tenta registrar (signup)
+                const { data: signUpData, error: signUpError } = await db.auth.signUp({ email, password });
+                if (signUpError) {
+                    alert("Erro ao autenticar: " + signUpError.message);
+                } else if (signUpData.user) {
+                    alert("Conta criada com sucesso! Entre novamente.");
+                }
             } else if (data.session) {
+                // Sucesso: Troca de tela imediata
                 showDashboard();
             }
             loader(false);
         };
 
-        function showDashboard() {
-            document.getElementById('login-view').classList.remove('active');
-            document.getElementById('main-app').classList.remove('hidden');
-            loadTrips();
+        async function loadTrips() {
+            const { data, error } = await db.from('trips').select('*').order('start_datetime', { ascending: false });
+            if (data) {
+                document.getElementById('list-container').innerHTML = data.map(t => `
+                    <div onclick="openTrip('${t.id}')" class="card-soft p-6 cursor-pointer">
+                        <p class="text-[10px] text-blue-500 font-bold uppercase mb-1">${new Date(t.start_datetime).toLocaleDateString()}</p>
+                        <h3 class="text-lg text-white font-medium">${t.name}</h3>
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
         }
 
-        async function loadTrips() {
-            const { data } = await db.from('trips').select('*').order('start_datetime', { ascending: false });
-            document.getElementById('list-container').innerHTML = (data || []).map(t => `
-                <div onclick="openTrip('${t.id}')" class="card-soft p-6 cursor-pointer">
-                    <p class="text-[10px] text-blue-500 font-bold uppercase mb-1">${new Date(t.start_datetime).toLocaleDateString()}</p>
-                    <h3 class="text-lg text-white font-medium">${t.name}</h3>
+        async function openTrip(id) {
+            loader(true);
+            const { data: trip } = await db.from('trips').select('*').eq('id', id).single();
+            const { data: evs } = await db.from('trip_events').select('*').eq('trip_id', id).order('datetime', { ascending: true });
+
+            document.getElementById('app-title').innerText = trip.name;
+            document.getElementById('back-btn').classList.remove('hidden');
+            document.getElementById('trips-view').classList.remove('active');
+            document.getElementById('details-view').classList.add('active');
+
+            document.getElementById('timeline-container').innerHTML = (evs || []).map(ev => `
+                <div class="card-soft p-5 mb-4">
+                    <span class="text-[9px] uppercase font-bold text-slate-500">${ev.type} • ${new Date(ev.datetime).toLocaleTimeString()}</span>
+                    <h4 class="text-sm text-white font-medium">${ev.name_location}</h4>
                 </div>
             `).join('');
+
             lucide.createIcons();
+            loader(false);
         }
 
         function togglePass() {
@@ -164,11 +179,19 @@
             lucide.createIcons();
         }
 
+        function closeTrip() {
+            document.getElementById('back-btn').classList.add('hidden');
+            document.getElementById('app-title').innerText = "Viagens";
+            document.getElementById('details-view').classList.remove('active');
+            document.getElementById('trips-view').classList.add('active');
+        }
+
         async function handleLogout() {
             await db.auth.signOut();
             window.location.reload();
         }
 
+        // Verifica sessão ao carregar a página
         window.onload = async () => {
             const { data: { session } } = await db.auth.getSession();
             if (session) showDashboard();
