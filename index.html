@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LogMyTravel v22.0</title>
+    <title>LogMyTravel v22.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
@@ -12,7 +12,7 @@
         body {
             background-color: #0f172a;
             color: #94a3b8;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
         }
 
         .view {
@@ -47,6 +47,31 @@
             font-weight: 500;
             text-transform: uppercase;
             font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+        }
+
+        .btn-action:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .timeline-line {
+            position: absolute;
+            left: 23px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #1e293b;
+            z-index: 0;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            color: #f8fafc;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -60,15 +85,21 @@
     <section id="login-view" class="view active min-h-screen flex items-center justify-center p-6 text-center">
         <div class="w-full max-w-sm space-y-10">
             <h1 class="text-3xl font-light tracking-widest text-white uppercase">LOGMYTRAVEL</h1>
-            <form id="login-form" class="space-y-4">
-                <input type="email" id="auth-email" class="input-dark text-center" placeholder="Seu e-mail" required>
-                <div class="relative">
-                    <input type="password" id="auth-password" class="input-dark text-center" placeholder="Sua senha"
-                        required>
-                    <button type="button" onclick="togglePass()" class="absolute right-4 top-4 text-slate-500"><i
-                            data-lucide="eye" id="pass-icon" class="w-5 h-5"></i></button>
+            <form id="login-form" class="space-y-4 text-left">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-2 mb-1 block">E-mail</label>
+                    <input type="email" id="auth-email" class="input-dark" placeholder="exemplo@email.com" required>
                 </div>
-                <button type="submit" class="btn-action w-full">Acessar Painel</button>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-2 mb-1 block">Senha</label>
+                    <div class="relative">
+                        <input type="password" id="auth-password" class="input-dark" placeholder="••••••••" required>
+                        <button type="button" onclick="togglePass()" class="absolute right-4 top-4 text-slate-500">
+                            <i data-lucide="eye" id="pass-icon" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-action w-full mt-4">Acessar Painel</button>
             </form>
         </div>
     </section>
@@ -86,7 +117,7 @@
             </div>
         </header>
 
-        <main class="max-w-md mx-auto p-5">
+        <main class="max-w-md mx-auto p-5 space-y-4">
             <div id="trips-view" class="view active space-y-4">
                 <div id="list-container" class="space-y-4"></div>
                 <button onclick="document.getElementById('import-file').click()"
@@ -94,8 +125,10 @@
                     JSON</button>
                 <input type="file" id="import-file" class="hidden" accept=".json" onchange="window.importJSON(event)">
             </div>
+
             <div id="details-view" class="view">
-                <div id="timeline-container" class="space-y-6"></div>
+                <div class="timeline-line"></div>
+                <div id="timeline-container" class="space-y-8 relative z-10"></div>
             </div>
         </main>
     </div>
@@ -107,11 +140,9 @@
 
         function loader(s) { document.getElementById('loader').classList.toggle('hidden', !s); }
 
-        // --- LÓGICA DE TRANSIÇÃO GARANTIDA ---
         function showDashboard() {
             document.getElementById('login-view').classList.remove('active');
             document.getElementById('main-app').classList.remove('hidden');
-            document.getElementById('trips-view').classList.add('active');
             loadTrips();
         }
 
@@ -121,30 +152,24 @@
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
 
-            // Tentativa de Login
             const { data, error } = await db.auth.signInWithPassword({ email, password });
 
             if (error) {
-                // Se o erro for de usuário não encontrado, tenta registrar (signup)
                 const { data: signUpData, error: signUpError } = await db.auth.signUp({ email, password });
-                if (signUpError) {
-                    alert("Erro ao autenticar: " + signUpError.message);
-                } else if (signUpData.user) {
-                    alert("Conta criada com sucesso! Entre novamente.");
-                }
+                if (signUpError) alert("Falha na autenticação.");
+                else alert("Conta criada! Tente logar.");
             } else if (data.session) {
-                // Sucesso: Troca de tela imediata
                 showDashboard();
             }
             loader(false);
         };
 
         async function loadTrips() {
-            const { data, error } = await db.from('trips').select('*').order('start_datetime', { ascending: false });
+            const { data } = await db.from('trips').select('*').order('start_datetime', { ascending: false });
             if (data) {
                 document.getElementById('list-container').innerHTML = data.map(t => `
                     <div onclick="openTrip('${t.id}')" class="card-soft p-6 cursor-pointer">
-                        <p class="text-[10px] text-blue-500 font-bold uppercase mb-1">${new Date(t.start_datetime).toLocaleDateString()}</p>
+                        <p class="text-[10px] text-blue-400 font-bold uppercase mb-1">${new Date(t.start_datetime).toLocaleDateString()}</p>
                         <h3 class="text-lg text-white font-medium">${t.name}</h3>
                     </div>
                 `).join('');
@@ -163,9 +188,18 @@
             document.getElementById('details-view').classList.add('active');
 
             document.getElementById('timeline-container').innerHTML = (evs || []).map(ev => `
-                <div class="card-soft p-5 mb-4">
-                    <span class="text-[9px] uppercase font-bold text-slate-500">${ev.type} • ${new Date(ev.datetime).toLocaleTimeString()}</span>
-                    <h4 class="text-sm text-white font-medium">${ev.name_location}</h4>
+                <div class="flex gap-5 relative z-10">
+                    <div class="w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-slate-400">
+                        <i data-lucide="${ev.type === 'fuel' || ev.type === 'abastecimento' ? 'fuel' : 'map-pin'}" class="w-5 h-5"></i>
+                    </div>
+                    <div class="flex-1 card-soft p-5">
+                        <span class="text-[9px] uppercase font-bold text-slate-500 tracking-widest">${new Date(ev.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <h4 class="text-sm text-white font-medium leading-tight mt-1">${ev.name_location}</h4>
+                        <div class="flex justify-between items-center mt-3 text-[10px] font-medium">
+                            <span class="text-slate-500">KM: ${ev.km_entry || '--'}</span>
+                            ${ev.amount ? `<span class="text-emerald-400 font-bold">R$ ${parseFloat(ev.amount).toFixed(2)}</span>` : ''}
+                        </div>
+                    </div>
                 </div>
             `).join('');
 
@@ -191,7 +225,6 @@
             window.location.reload();
         }
 
-        // Verifica sessão ao carregar a página
         window.onload = async () => {
             const { data: { session } } = await db.auth.getSession();
             if (session) showDashboard();
