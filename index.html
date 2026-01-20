@@ -150,7 +150,7 @@
                 else alert("Conta criada! Tente entrar.");
             } else if (data.session) {
                 // Pequena pausa para o navegador registrar os cookies de segurança
-                setTimeout(() => { enterApp(); toggleLoader(false); }, 300);
+                setTimeout(() => { enterApp(); toggleLoader(false); });
                 return;
             }
             toggleLoader(false);
