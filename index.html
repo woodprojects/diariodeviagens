@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LogMyTravel v18.3</title>
+    <title>LogMyTravel v18.4 - DEBUG</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
@@ -12,7 +12,7 @@
         body {
             background-color: #0f172a;
             color: #cbd5e1;
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: 'Inter', sans-serif;
         }
 
         .view {
@@ -27,7 +27,6 @@
             background: #1e293b;
             border: 1px solid #334155;
             border-radius: 1.25rem;
-            transition: all 0.2s;
         }
 
         .input-dark {
@@ -38,6 +37,7 @@
             padding: 1rem;
             width: 100%;
             outline: none;
+            appearance: none;
         }
 
         .btn-primary {
@@ -48,29 +48,6 @@
             font-weight: 600;
             text-transform: uppercase;
             font-size: 0.75rem;
-            letter-spacing: 0.05em;
-        }
-
-        .modal-overlay {
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(4px);
-            z-index: 9999;
-        }
-
-        .transport-icon {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            background: #334155;
-            color: #94a3b8;
-        }
-
-        .transport-active {
-            background: #3b82f6;
-            color: white;
         }
     </style>
 </head>
@@ -79,18 +56,28 @@
 
     <section id="login-view" class="view active min-h-screen flex items-center justify-center p-6">
         <div class="w-full max-w-sm space-y-6">
-            <div class="text-center mb-8">
+            <div class="text-center mb-4">
                 <h1 class="text-2xl font-light text-white tracking-widest uppercase">LOGMYTRAVEL</h1>
             </div>
+
             <div class="space-y-4">
                 <input type="email" id="auth-email" class="input-dark" placeholder="E-mail">
                 <div class="relative">
                     <input type="password" id="auth-password" class="input-dark" placeholder="Senha">
-                    <button onclick="togglePass()" class="absolute right-4 top-4 text-slate-500">
-                        <i data-lucide="eye" id="pass-icon" class="w-5 h-5"></i>
-                    </button>
+                    <button onclick="togglePass()" class="absolute right-4 top-4 text-slate-500"><i data-lucide="eye"
+                            id="pass-icon" class="w-5 h-5"></i></button>
                 </div>
-                <button onclick="handleAuth()" class="btn-primary w-full">Entrar / Acessar Dados</button>
+                <button onclick="handleAuth()" class="btn-primary w-full">Entrar / Sincronizar</button>
+
+                <button onclick="bypassLogin()"
+                    class="w-full text-[10px] text-slate-500 uppercase font-bold border border-slate-700 p-2 rounded-lg">Pular
+                    Login (Modo de Teste Local)</button>
+            </div>
+
+            <div id="debug-panel"
+                class="mt-8 p-4 bg-black/40 rounded-xl border border-red-900/30 font-mono text-[10px] text-red-400">
+                <p class="font-bold text-white mb-2 uppercase tracking-widest">Console de Erros:</p>
+                <div id="debug-log">Aguardando tentativa de login...</div>
             </div>
         </div>
     </section>
@@ -98,7 +85,7 @@
     <div id="main-app" class="hidden">
         <header class="p-4 border-b border-slate-800 sticky top-0 bg-slate-900/90 backdrop-blur z-40">
             <div class="max-w-md mx-auto flex justify-between items-center">
-                <h2 id="app-title" class="text-lg font-medium">Minhas Viagens</h2>
+                <h2 id="app-title" class="text-lg font-medium">Viagens</h2>
                 <button onclick="handleLogout()" class="text-slate-500"><i data-lucide="log-out"
                         class="w-5 h-5"></i></button>
             </div>
@@ -114,6 +101,7 @@
             </div>
 
             <div id="details-view" class="view space-y-6">
+                <button onclick="closeTrip()" class="text-xs text-blue-400 font-bold uppercase mb-4">Voltar</button>
                 <div id="timeline-container" class="space-y-6 relative">
                     <div class="absolute left-[21px] top-2 bottom-2 w-0.5 bg-slate-800"></div>
                 </div>
@@ -121,127 +109,91 @@
         </main>
     </div>
 
-    <div id="map-modal" class="modal-overlay fixed inset-0 hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
-            <h3 class="text-sm font-bold uppercase tracking-widest mb-4">Localização</h3>
-            <div id="mini-map"
-                class="w-full h-48 bg-slate-800 rounded-2xl mb-4 flex items-center justify-center text-slate-600 text-xs">
-                Carregando prévia...
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <button id="btn-waze"
-                    class="btn-primary bg-emerald-600 flex items-center justify-center gap-2">Waze</button>
-                <button id="btn-gmaps" class="btn-primary bg-blue-600 flex items-center justify-center gap-2">Google
-                    Maps</button>
-            </div>
-            <button onclick="closeMap()" class="w-full mt-3 text-slate-500 text-xs uppercase p-2">Fechar</button>
-        </div>
-    </div>
-
     <script>
         const SUPABASE_URL = "https://jjmnsijgzxknpwwzazwa.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqbW5zaWpnenhrbnB3d3phendhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NTk3ODIsImV4cCI6MjA4NDEzNTc4Mn0.lOYFP23r7BGH0W0yzLCprSdldB6BijuLVi4UhnbTDRE";
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        let events = [];
 
-        // --- AUTENTICAÇÃO CORRIGIDA ---
+        function logDebug(msg) {
+            const log = document.getElementById('debug-log');
+            log.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + log.innerHTML;
+            console.log(msg);
+        }
+
         async function handleAuth() {
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
+            logDebug(`Tentando login para: ${email}`);
 
-            // Tenta login direto primeiro
-            const { data, error } = await db.auth.signInWithPassword({ email, password });
-
-            if (error) {
-                if (error.message.includes("Invalid login credentials")) {
-                    // Se falhar e não existir, tenta criar
-                    const { error: signUpError } = await db.auth.signUp({ email, password });
-                    if (signUpError) alert("Erro: " + signUpError.message);
-                    else alert("Conta criada! Tente entrar.");
+            try {
+                const { data, error } = await db.auth.signInWithPassword({ email, password });
+                if (error) {
+                    logDebug(`Erro no Login: ${error.message}`);
+                    if (error.message.includes("Invalid login credentials")) {
+                        logDebug("Credenciais não encontradas. Tentando cadastro...");
+                        const { error: signUpError } = await db.auth.signUp({ email, password });
+                        if (signUpError) logDebug(`Erro no Cadastro: ${signUpError.message}`);
+                        else logDebug("Conta criada! Verifique seu e-mail ou tente entrar novamente.");
+                    }
                 } else {
-                    alert(error.message);
+                    logDebug("Login bem sucedido! Redirecionando...");
+                    setTimeout(() => window.location.reload(), 500);
                 }
-            } else {
-                window.location.reload();
+            } catch (err) {
+                logDebug(`Erro inesperado: ${err.message}`);
             }
         }
 
-        function togglePass() {
-            const p = document.getElementById('auth-password');
-            const i = document.getElementById('pass-icon');
-            if (p.type === 'password') {
-                p.type = 'text';
-                i.setAttribute('data-lucide', 'eye-off');
-            } else {
-                p.type = 'password';
-                i.setAttribute('data-lucide', 'eye');
-            }
-            lucide.createIcons();
+        function bypassLogin() {
+            logDebug("Bypass ativado: Pulando autenticação.");
+            document.getElementById('login-view').classList.remove('active');
+            document.getElementById('main-app').classList.remove('hidden');
+            loadTrips();
         }
-
-        // --- INTERFACE DE VIAGEM ---
-        const transportIcons = {
-            'bus': 'bus',
-            'plane': 'plane',
-            'car': 'car',
-            'walk': 'footprints',
-            'fuel': 'fuel'
-        };
 
         async function loadTrips() {
-            const { data } = await db.from('trips').select('*').order('start_datetime', { ascending: false });
-            document.getElementById('list-container').innerHTML = data.map(t => `
-                <div onclick="openTrip('${t.id}')" class="card-soft p-6 cursor-pointer mb-3">
-                    <h3 class="text-lg">${t.name}</h3>
-                    <p class="text-[10px] text-slate-500 uppercase mt-1">${new Date(t.start_datetime).toLocaleDateString()}</p>
-                </div>
-            `).join('');
+            try {
+                const { data, error } = await db.from('trips').select('*').order('start_datetime', { ascending: false });
+                if (error) {
+                    logDebug(`Erro ao buscar viagens: ${error.message}`);
+                    return;
+                }
+                document.getElementById('list-container').innerHTML = (data || []).map(t => `
+                    <div onclick="openTrip('${t.id}')" class="card-soft p-6 cursor-pointer mb-3">
+                        <h3 class="text-lg">${t.name}</h3>
+                        <p class="text-[10px] text-slate-500 uppercase mt-1">${new Date(t.start_datetime).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            } catch (err) {
+                logDebug(`Erro na listagem: ${err.message}`);
+            }
+        }
+
+        function closeTrip() {
+            document.getElementById('details-view').classList.remove('active');
+            document.getElementById('trips-view').classList.add('active');
+        }
+
+        // --- Funções de UI mantidas da v18.3 ---
+        function togglePass() {
+            const p = document.getElementById('auth-password');
+            p.type = p.type === 'password' ? 'text' : 'password';
             lucide.createIcons();
         }
 
-        async function openTrip(id) {
-            const { data: evs } = await db.from('trip_events').select('*').eq('trip_id', id).order('datetime', { ascending: true });
-            events = evs;
-            document.getElementById('trips-view').classList.remove('active');
-            document.getElementById('details-view').classList.add('active');
-
-            document.getElementById('timeline-container').innerHTML = evs.map(ev => `
-                <div class="flex gap-4 relative z-10">
-                    <div class="transport-icon ${ev.type === 'bus' ? 'transport-active' : ''}">
-                        <i data-lucide="${transportIcons[ev.type] || 'map-pin'}" class="w-4 h-4"></i>
-                    </div>
-                    <div class="flex-1 card-soft p-4">
-                        <div class="flex justify-between items-start mb-1">
-                            <span class="text-[9px] text-slate-500 font-bold uppercase">${new Date(ev.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            <button onclick="openExternalMap(${ev.latitude}, ${ev.longitude})"><i data-lucide="map" class="w-4 h-4 text-blue-400"></i></button>
-                        </div>
-                        <h4 class="text-sm font-medium">${ev.name_location}</h4>
-                        <div class="mt-2 flex justify-between text-[11px]">
-                            <span class="text-slate-500 italic">${ev.description || ''}</span>
-                            <span class="text-emerald-400 font-bold">R$ ${parseFloat(ev.amount || 0).toFixed(2)}</span>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
-
-        function openExternalMap(lat, lng) {
-            if (!lat || !lng) return alert("Coordenadas não disponíveis.");
-            document.getElementById('map-modal').classList.remove('hidden');
-            document.getElementById('btn-waze').onclick = () => window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`);
-            document.getElementById('btn-gmaps').onclick = () => window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
-        }
-
-        function closeMap() { document.getElementById('map-modal').classList.add('hidden'); }
         async function handleLogout() { await db.auth.signOut(); window.location.reload(); }
 
         window.onload = async () => {
+            logDebug("Verificando sessão ativa...");
             const { data: { session } } = await db.auth.getSession();
             if (session) {
+                logDebug("Sessão encontrada. Entrando...");
                 document.getElementById('login-view').classList.remove('active');
                 document.getElementById('main-app').classList.remove('hidden');
                 loadTrips();
+            } else {
+                logDebug("Nenhuma sessão encontrada. Aguardando login.");
             }
             lucide.createIcons();
         };
