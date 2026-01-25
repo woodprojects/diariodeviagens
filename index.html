@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Minhas Viagens 2026 - v25.0</title>
+    <title>Minhas Viagens 2026 - v25.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
@@ -23,45 +23,51 @@
             display: block;
         }
 
-        .card-soft {
+        .card-premium {
             background: #1e293b;
             border: 1px solid #334155;
-            border-radius: 1.25rem;
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
+        .status-badge {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .badge-active {
+            background: #1e3a8a;
+            color: #fbbf24;
+        }
+
+        .badge-closed {
+            background: #064e3b;
+            color: #34d399;
         }
 
         .input-dark {
             background: #0f172a;
             border: 1px solid #334155;
             color: white;
-            border-radius: 1rem;
-            padding: 1rem;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
             width: 100%;
             outline: none;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-            padding: 1rem;
-            border-radius: 1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-            width: 100%;
         }
 
         #toast {
             position: fixed;
             top: 20px;
-            right: 20px;
-            padding: 1rem 2rem;
-            border-radius: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 12px;
             color: white;
-            font-weight: bold;
             z-index: 10000;
             display: none;
-            transition: all 0.3s;
         }
     </style>
 </head>
@@ -71,20 +77,16 @@
     <div id="toast"></div>
 
     <section id="login-view" class="view active min-h-screen flex items-center justify-center p-6">
-        <form id="login-form" class="w-full max-w-sm space-y-6">
-            <div class="text-center mb-8">
-                <h1 class="text-2xl font-light text-white tracking-widest uppercase">LOGMYTRAVEL</h1>
-            </div>
+        <form id="login-form" class="w-full max-w-sm space-y-6 bg-slate-900/50 p-8 rounded-3xl border border-slate-800">
+            <h1 class="text-2xl font-light text-center text-white tracking-widest uppercase">LOGMYTRAVEL</h1>
             <div class="space-y-4">
-                <input type="email" id="auth-email" class="input-dark" placeholder="E-mail" required
+                <input type="email" id="auth-email" class="input-dark" placeholder="Seu e-mail" required
                     autocomplete="username">
-                <div class="relative">
-                    <input type="password" id="auth-password" class="input-dark" placeholder="Senha" required
-                        autocomplete="current-password">
-                    <button type="button" onclick="togglePass()" class="absolute right-4 top-4 text-slate-500"><i
-                            data-lucide="eye" id="pass-icon" class="w-5 h-5"></i></button>
-                </div>
-                <button type="submit" class="btn-primary">Acessar Painel</button>
+                <input type="password" id="auth-password" class="input-dark" placeholder="Sua senha" required
+                    autocomplete="current-password">
+                <button type="submit"
+                    class="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold uppercase text-xs">Acessar
+                    Painel</button>
             </div>
         </form>
     </section>
@@ -93,36 +95,57 @@
         <header class="p-4 border-b border-slate-800 sticky top-0 bg-slate-900/90 backdrop-blur z-40">
             <div class="max-w-md mx-auto flex justify-between items-center">
                 <div>
-                    <h2 id="app-title" class="text-sm font-bold text-white">Minhas Viagens 2026</h2>
-                    <p id="user-display" class="text-[9px] text-blue-400 font-bold uppercase truncate max-w-[150px]">
-                        Logado como: ---</p>
+                    <h2 class="text-sm font-bold text-white">Minhas Viagens 2026</h2>
+                    <p id="user-display" class="text-[9px] text-blue-400 font-bold uppercase">---</p>
                 </div>
-                <button onclick="handleLogout()" class="p-2 text-slate-500 hover:text-red-400"><i data-lucide="log-out"
+                <button onclick="handleLogout()" class="p-2 text-slate-500"><i data-lucide="log-out"
                         class="w-5 h-5"></i></button>
             </div>
         </header>
 
-        <main class="max-w-md mx-auto p-4 space-y-4">
+        <main class="max-w-md mx-auto p-4 relative">
             <div id="trips-view" class="view active space-y-4">
-                <div id="list-container"></div>
-                <div class="py-10 text-center border-2 border-dashed border-slate-800 rounded-[2rem]">
+                <div id="list-container" class="space-y-4"></div>
+
+                <div class="py-6 text-center border-2 border-dashed border-slate-800 rounded-2xl">
                     <button onclick="document.getElementById('import-file').click()"
-                        class="text-[10px] font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 mx-auto"><i
-                            data-lucide="upload-cloud"></i> Sincronizar JSON</button>
+                        class="text-[10px] font-bold text-blue-400 uppercase flex items-center gap-2 mx-auto"><i
+                            data-lucide="upload-cloud"></i> Importar JSON</button>
                     <input type="file" id="import-file" class="hidden" accept=".json"
                         onchange="window.importJSON(event)">
                 </div>
             </div>
 
-            <div id="details-view" class="view space-y-6">
+            <div id="details-view" class="view space-y-4">
                 <button onclick="closeTrip()"
-                    class="text-xs text-blue-400 font-bold uppercase flex items-center gap-1 mb-4"><i
+                    class="text-xs text-blue-400 font-bold uppercase flex items-center gap-1"><i
                         data-lucide="arrow-left" class="w-4 h-4"></i> Voltar</button>
-                <div id="timeline-container" class="space-y-6 relative">
-                    <div class="absolute left-[21px] top-2 bottom-2 w-0.5 bg-slate-800"></div>
+                <div id="timeline-container" class="space-y-6 relative ml-2">
+                    <div class="absolute left-[19px] top-2 bottom-2 w-0.5 bg-slate-800"></div>
                 </div>
             </div>
+
+            <button onclick="openCreateModal()"
+                class="fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center z-50">
+                <i data-lucide="plus" class="w-8 h-8"></i>
+            </button>
         </main>
+    </div>
+
+    <div id="create-modal" class="fixed inset-0 bg-black/80 hidden z-[100] flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-3xl p-6 space-y-4">
+            <h3 class="text-white font-bold uppercase text-sm tracking-widest">Nova Viagem</h3>
+            <input id="new-trip-name" class="input-dark" placeholder="Nome (Ex: Férias 2026)">
+            <input id="new-trip-origin" class="input-dark" placeholder="Origem (Ex: Casa)">
+            <input id="new-trip-start" type="datetime-local" class="input-dark">
+            <input id="new-trip-km" type="number" class="input-dark" placeholder="KM Inicial">
+            <div class="flex gap-2 pt-2">
+                <button onclick="saveNewTrip()"
+                    class="flex-1 bg-blue-600 p-3 rounded-xl font-bold text-xs uppercase">Salvar</button>
+                <button onclick="closeCreateModal()"
+                    class="flex-1 bg-slate-800 p-3 rounded-xl font-bold text-xs uppercase text-slate-400">Cancelar</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -132,38 +155,109 @@
 
         function showToast(msg, error = false) {
             const t = document.getElementById('toast');
-            t.innerText = msg;
-            t.style.backgroundColor = error ? "#ef4444" : "#10b981";
-            t.style.display = "block";
-            setTimeout(() => t.style.display = "none", 3000);
+            t.innerText = msg; t.style.backgroundColor = error ? "#ef4444" : "#10b981";
+            t.style.display = "block"; setTimeout(() => t.style.display = "none", 3000);
         }
 
+        // --- CÁLCULO DE DURAÇÃO ---
+        function calculateDuration(start, end = null) {
+            const startDate = new Date(start);
+            const endDate = end ? new Date(end) : new Date();
+            const diff = Math.abs(endDate - startDate);
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            return `${days}d ${hours}h`;
+        }
+
+        async function loadTrips() {
+            const { data: trips } = await db.from('trips').select('*, trip_events(*)').order('start_datetime', { ascending: false });
+            const container = document.getElementById('list-container');
+
+            container.innerHTML = (trips || []).map(t => {
+                // Lógica: Filtra apenas "destinos" e pega o último cadastrado
+                const destinations = t.trip_events.filter(ev => ev.type === 'destino' || ev.type === 'stops');
+                const lastDest = destinations.length > 0 ? destinations[destinations.length - 1].name_location : 'Nenhum destino';
+                const status = t.is_active ? 'Em andamento' : 'Encerrada';
+                const statusClass = t.is_active ? 'badge-active' : 'badge-closed';
+                const duration = calculateDuration(t.start_datetime, t.end_date);
+
+                return `
+                    <div class="card-premium p-6 space-y-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xl font-bold text-blue-400">${t.name}</h3>
+                                <p class="text-[10px] text-slate-500 font-medium">${new Date(t.start_datetime).toLocaleString('pt-BR')}</p>
+                            </div>
+                            <span class="status-badge ${statusClass}">${status}</span>
+                        </div>
+                        
+                        <div class="text-xs space-y-1">
+                            <p class="text-slate-400"><span class="font-bold">${t.origin || 'Casa'}</span> → <span class="text-white font-bold">${lastDest}</span></p>
+                            <p class="text-[10px] text-slate-500 italic">Tempo: ${duration}</p>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-4 border-t border-slate-800">
+                            <div class="flex gap-4">
+                                <button onclick="openTrip('${t.id}')" class="text-slate-400 hover:text-white"><i data-lucide="eye" class="w-4 h-4"></i></button>
+                                <button onclick="editTrip('${t.id}')" class="text-slate-400 hover:text-blue-400"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            </div>
+                            <button onclick="confirmDelete('${t.id}')" class="text-slate-600 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        // --- EXCLUSÃO EM CASCATA COM CONFIRMAÇÃO ---
+        async function confirmDelete(id) {
+            if (confirm("Deseja realmente excluir esta viagem? Todos os eventos relacionados (paradas, abastecimentos) serão removidos permanentemente.")) {
+                try {
+                    // Supabase lida com cascata se configurado, mas faremos manual por segurança
+                    await db.from('trip_events').delete().eq('trip_id', id);
+                    await db.from('trips').delete().eq('id', id);
+                    showToast("Viagem excluída com sucesso");
+                    loadTrips();
+                } catch (e) { showToast("Erro ao excluir", true); }
+            }
+        }
+
+        // --- CADASTRO MANUAL ---
+        function openCreateModal() { document.getElementById('create-modal').classList.remove('hidden'); }
+        function closeCreateModal() { document.getElementById('create-modal').classList.add('hidden'); }
+
+        async function saveNewTrip() {
+            const { data: { user } } = await db.auth.getUser();
+            const payload = {
+                user_id: user.id,
+                name: document.getElementById('new-trip-name').value,
+                origin: document.getElementById('new-trip-origin').value,
+                start_datetime: document.getElementById('new-trip-start').value,
+                initial_km: parseFloat(document.getElementById('new-trip-km').value) || 0,
+                is_active: true
+            };
+            const { error } = await db.from('trips').insert([payload]);
+            if (!error) { showToast("Viagem criada!"); closeCreateModal(); loadTrips(); }
+            else { showToast("Erro ao criar", true); }
+        }
+
+        // --- LÓGICA DE LOGIN E DASHBOARD ---
         function enterDashboard(email) {
-            document.getElementById('login-view').classList.remove('active'); // Garante que some
             document.getElementById('login-view').style.display = "none";
             document.getElementById('main-app').classList.remove('hidden');
             document.getElementById('user-display').innerText = `Logado: ${email}`;
             loadTrips();
         }
 
-        // --- LÓGICA DE LOGIN ---
         document.getElementById('login-form').onsubmit = async (e) => {
             e.preventDefault();
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
-
             const { data, error } = await db.auth.signInWithPassword({ email, password });
-            if (error) {
-                const { error: signUpError } = await db.auth.signUp({ email, password });
-                if (signUpError) showToast("Falha: Verifique e-mail e senha", true);
-                else showToast("Conta criada! Tente entrar.");
-            } else {
-                showToast("Sucesso: Acesso Liberado!");
-                enterDashboard(data.user.email);
-            }
+            if (!error) enterDashboard(data.user.email);
+            else showToast("Falha no login", true);
         };
 
-        // --- IMPORTAÇÃO DEFINITIVA (VINCULADO AO WINDOW) ---
         window.importJSON = async function (event) {
             const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
@@ -171,59 +265,45 @@
                 try {
                     const trip = JSON.parse(e.target.result);
                     const { data: { user } } = await db.auth.getUser();
-
                     const { data: newTrip } = await db.from('trips').insert([{
-                        user_id: user.id, name: trip.name, start_datetime: trip.startDatetime, initial_km: parseFloat(trip.initialKm) || 0
+                        user_id: user.id, name: trip.name, start_datetime: trip.startDatetime,
+                        initial_km: parseFloat(trip.initialKm) || 0, is_active: true
                     }]).select().single();
-
                     const batch = [];
                     if (trip.stops) trip.stops.forEach(s => batch.push({ trip_id: newTrip.id, type: 'destino', datetime: s.datetimeChegada, name_location: s.name, km_entry: parseFloat(s.kmChegada) }));
-                    if (trip.fuel) trip.fuel.forEach(f => batch.push({ trip_id: newTrip.id, type: 'abastecimento', datetime: f.datetime, name_location: f.location, km_entry: parseFloat(f.kmFinal), amount: parseFloat(f.totalPaid) }));
                     if (trip.paradas) trip.paradas.forEach(p => batch.push({ trip_id: newTrip.id, type: 'parada', datetime: p.datetime, name_location: p.description, km_entry: parseFloat(p.kmChegada) }));
-
                     await db.from('trip_events').insert(batch);
-                    showToast("Sincronização Concluída!");
-                    loadTrips();
-                } catch (err) { showToast("Erro na importação: JSON inválido", true); }
+                    showToast("Importado com sucesso!"); loadTrips();
+                } catch (err) { showToast("Erro no JSON", true); }
             };
             reader.readAsText(file);
         };
 
-        async function loadTrips() {
-            const { data } = await db.from('trips').select('*').order('start_datetime', { ascending: false });
-            document.getElementById('list-container').innerHTML = (data || []).map(t => `
-                <div onclick="openTrip('${t.id}')" class="card-soft p-6 cursor-pointer mb-3">
-                    <h3 class="text-lg text-white font-medium">${t.name}</h3>
-                    <p class="text-[10px] text-blue-500 uppercase mt-1">${new Date(t.start_datetime).toLocaleDateString()}</p>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
-
-        window.openTrip = async (id) => {
+        async function openTrip(id) {
             const { data: evs } = await db.from('trip_events').select('*').eq('trip_id', id).order('datetime', { ascending: true });
             document.getElementById('trips-view').classList.remove('active');
             document.getElementById('details-view').classList.add('active');
-
-            document.getElementById('timeline-container').innerHTML = evs.map(ev => `
-                <div class="flex gap-4 relative z-10">
-                    <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400">
-                        <i data-lucide="${ev.type === 'abastecimento' ? 'fuel' : 'map-pin'}" class="w-4 h-4"></i>
+            document.getElementById('timeline-container').innerHTML = evs.map(ev => {
+                const icon = ev.type === 'destino' ? 'map-pin' : 'circle';
+                const color = ev.type === 'destino' ? 'text-blue-400' : 'text-slate-500';
+                return `
+                    <div class="flex gap-4 relative z-10">
+                        <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center ${color}">
+                            <i data-lucide="${icon}" class="w-4 h-4"></i>
+                        </div>
+                        <div class="flex-1 card-premium p-4">
+                            <span class="text-[8px] text-slate-500 font-bold uppercase">${new Date(ev.datetime).toLocaleTimeString()}</span>
+                            <h4 class="text-sm font-medium text-white">${ev.name_location}</h4>
+                            <p class="text-[9px] text-slate-500">${ev.type === 'destino' ? 'Destino visitado' : 'Parada'}</p>
+                        </div>
                     </div>
-                    <div class="flex-1 card-soft p-4">
-                        <span class="text-[8px] text-slate-500 font-bold uppercase">${new Date(ev.datetime).toLocaleTimeString()}</span>
-                        <h4 class="text-sm font-medium text-white">${ev.name_location}</h4>
-                        <p class="text-[10px] text-emerald-400 mt-2">R$ ${parseFloat(ev.amount || 0).toFixed(2)}</p>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             lucide.createIcons();
-        };
+        }
 
-        function togglePass() { const p = document.getElementById('auth-password'); p.type = p.type === 'password' ? 'text' : 'password'; lucide.createIcons(); }
         function closeTrip() { document.getElementById('details-view').classList.remove('active'); document.getElementById('trips-view').classList.add('active'); }
         async function handleLogout() { await db.auth.signOut(); location.reload(); }
-
         window.onload = async () => {
             const { data: { session } } = await db.auth.getSession();
             if (session) enterDashboard(session.user.email);
