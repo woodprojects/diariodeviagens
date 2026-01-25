@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LogMyTravel v23.0</title>
+    <title>Minhas Viagens 2026 - v25.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
     <style>
         body {
             background-color: #0f172a;
-            color: #94a3b8;
+            color: #cbd5e1;
             font-family: 'Inter', sans-serif;
         }
 
@@ -26,89 +26,101 @@
         .card-soft {
             background: #1e293b;
             border: 1px solid #334155;
-            border-radius: 1.5rem;
+            border-radius: 1.25rem;
         }
 
         .input-dark {
             background: #0f172a;
             border: 1px solid #334155;
             color: white;
-            border-radius: 1.25rem;
-            padding: 1.25rem;
+            border-radius: 1rem;
+            padding: 1rem;
             width: 100%;
             outline: none;
-            appearance: none;
-            -webkit-appearance: none;
         }
 
-        .btn-action {
+        .btn-primary {
             background: #3b82f6;
             color: white;
-            padding: 1.25rem;
-            border-radius: 1.5rem;
-            font-weight: 500;
+            padding: 1rem;
+            border-radius: 1rem;
+            font-weight: 600;
             text-transform: uppercase;
             font-size: 0.75rem;
             letter-spacing: 0.05em;
             width: 100%;
         }
 
-        #loader {
-            background: rgba(15, 23, 42, 0.98);
+        #toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            color: white;
+            font-weight: bold;
             z-index: 10000;
+            display: none;
+            transition: all 0.3s;
         }
     </style>
 </head>
 
-<body class="pb-32">
+<body class="pb-24">
 
-    <div id="loader" class="fixed inset-0 hidden flex items-center justify-center">
-        <div class="flex flex-col items-center gap-4">
-            <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Sincronizando Dados...</p>
-        </div>
-    </div>
+    <div id="toast"></div>
 
-    <section id="login-view" class="view active min-h-screen flex items-center justify-center p-6 text-center">
-        <div class="w-full max-w-sm space-y-10">
-            <h1 class="text-3xl font-light tracking-widest text-white uppercase">LOGMYTRAVEL</h1>
-            <form id="login-form" class="space-y-4 text-left">
+    <section id="login-view" class="view active min-h-screen flex items-center justify-center p-6">
+        <form id="login-form" class="w-full max-w-sm space-y-6">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-light text-white tracking-widest uppercase">LOGMYTRAVEL</h1>
+            </div>
+            <div class="space-y-4">
                 <input type="email" id="auth-email" class="input-dark" placeholder="E-mail" required
-                    autocomplete="email">
+                    autocomplete="username">
                 <div class="relative">
                     <input type="password" id="auth-password" class="input-dark" placeholder="Senha" required
                         autocomplete="current-password">
-                    <button type="button" onclick="togglePass()" class="absolute right-6 top-5 text-slate-500"><i
+                    <button type="button" onclick="togglePass()" class="absolute right-4 top-4 text-slate-500"><i
                             data-lucide="eye" id="pass-icon" class="w-5 h-5"></i></button>
                 </div>
-                <button type="submit" class="btn-action">Acessar Painel</button>
-            </form>
-        </div>
+                <button type="submit" class="btn-primary">Acessar Painel</button>
+            </div>
+        </form>
     </section>
 
     <div id="main-app" class="hidden">
-        <header class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 p-5">
+        <header class="p-4 border-b border-slate-800 sticky top-0 bg-slate-900/90 backdrop-blur z-40">
             <div class="max-w-md mx-auto flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <button id="back-btn" onclick="closeTrip()" class="hidden text-slate-400"><i
-                            data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                    <h2 id="app-title" class="text-xl font-medium text-white">Viagens</h2>
+                <div>
+                    <h2 id="app-title" class="text-sm font-bold text-white">Minhas Viagens 2026</h2>
+                    <p id="user-display" class="text-[9px] text-blue-400 font-bold uppercase truncate max-w-[150px]">
+                        Logado como: ---</p>
                 </div>
-                <button onclick="handleLogout()" class="text-slate-500"><i data-lucide="log-out"
+                <button onclick="handleLogout()" class="p-2 text-slate-500 hover:text-red-400"><i data-lucide="log-out"
                         class="w-5 h-5"></i></button>
             </div>
         </header>
 
-        <main class="max-w-md mx-auto p-5 space-y-4">
+        <main class="max-w-md mx-auto p-4 space-y-4">
             <div id="trips-view" class="view active space-y-4">
-                <div id="list-container" class="space-y-4"></div>
-                <button onclick="document.getElementById('import-file').click()"
-                    class="w-full py-12 border-2 border-dashed border-slate-800 rounded-[2.5rem] text-[10px] font-bold text-blue-400 uppercase">Sincronizar
-                    JSON</button>
-                <input type="file" id="import-file" class="hidden" accept=".json" onchange="window.importJSON(event)">
+                <div id="list-container"></div>
+                <div class="py-10 text-center border-2 border-dashed border-slate-800 rounded-[2rem]">
+                    <button onclick="document.getElementById('import-file').click()"
+                        class="text-[10px] font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2 mx-auto"><i
+                            data-lucide="upload-cloud"></i> Sincronizar JSON</button>
+                    <input type="file" id="import-file" class="hidden" accept=".json"
+                        onchange="window.importJSON(event)">
+                </div>
             </div>
-            <div id="details-view" class="view">
-                <div id="timeline-container" class="space-y-6"></div>
+
+            <div id="details-view" class="view space-y-6">
+                <button onclick="closeTrip()"
+                    class="text-xs text-blue-400 font-bold uppercase flex items-center gap-1 mb-4"><i
+                        data-lucide="arrow-left" class="w-4 h-4"></i> Voltar</button>
+                <div id="timeline-container" class="space-y-6 relative">
+                    <div class="absolute left-[21px] top-2 bottom-2 w-0.5 bg-slate-800"></div>
+                </div>
             </div>
         </main>
     </div>
@@ -116,79 +128,105 @@
     <script>
         const SUPABASE_URL = "https://jjmnsijgzxknpwwzazwa.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqbW5zaWpnenhrbnB3d3phendhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1NTk3ODIsImV4cCI6MjA4NDEzNTc4Mn0.lOYFP23r7BGH0W0yzLCprSdldB6BijuLVi4UhnbTDRE";
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // CONFIGURAÇÃO DE PERSISTÊNCIA MANUAL
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-            auth: { persistSession: true, autoRefreshToken: true, storageKey: 'logmytravel-session' }
-        });
+        function showToast(msg, error = false) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.backgroundColor = error ? "#ef4444" : "#10b981";
+            t.style.display = "block";
+            setTimeout(() => t.style.display = "none", 3000);
+        }
 
-        function toggleLoader(s) { document.getElementById('loader').classList.toggle('hidden', !s); }
-
-        function enterApp() {
-            document.getElementById('login-view').classList.remove('active');
+        function enterDashboard(email) {
+            document.getElementById('login-view').classList.remove('active'); // Garante que some
+            document.getElementById('login-view').style.display = "none";
             document.getElementById('main-app').classList.remove('hidden');
-            document.getElementById('trips-view').classList.add('active');
+            document.getElementById('user-display').innerText = `Logado: ${email}`;
             loadTrips();
         }
 
+        // --- LÓGICA DE LOGIN ---
         document.getElementById('login-form').onsubmit = async (e) => {
             e.preventDefault();
-            toggleLoader(true);
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
 
             const { data, error } = await db.auth.signInWithPassword({ email, password });
-
             if (error) {
-                const { error: signUpErr } = await db.auth.signUp({ email, password });
-                if (signUpErr) alert("Erro de autenticação.");
-                else alert("Conta criada! Tente entrar.");
-            } else if (data.session) {
-                // Força o reconhecimento da sessão antes de mudar a tela
-                await db.auth.setSession(data.session);
-                enterApp();
+                const { error: signUpError } = await db.auth.signUp({ email, password });
+                if (signUpError) showToast("Falha: Verifique e-mail e senha", true);
+                else showToast("Conta criada! Tente entrar.");
+            } else {
+                showToast("Sucesso: Acesso Liberado!");
+                enterDashboard(data.user.email);
             }
-            toggleLoader(false);
+        };
+
+        // --- IMPORTAÇÃO DEFINITIVA (VINCULADO AO WINDOW) ---
+        window.importJSON = async function (event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const trip = JSON.parse(e.target.result);
+                    const { data: { user } } = await db.auth.getUser();
+
+                    const { data: newTrip } = await db.from('trips').insert([{
+                        user_id: user.id, name: trip.name, start_datetime: trip.startDatetime, initial_km: parseFloat(trip.initialKm) || 0
+                    }]).select().single();
+
+                    const batch = [];
+                    if (trip.stops) trip.stops.forEach(s => batch.push({ trip_id: newTrip.id, type: 'destino', datetime: s.datetimeChegada, name_location: s.name, km_entry: parseFloat(s.kmChegada) }));
+                    if (trip.fuel) trip.fuel.forEach(f => batch.push({ trip_id: newTrip.id, type: 'abastecimento', datetime: f.datetime, name_location: f.location, km_entry: parseFloat(f.kmFinal), amount: parseFloat(f.totalPaid) }));
+                    if (trip.paradas) trip.paradas.forEach(p => batch.push({ trip_id: newTrip.id, type: 'parada', datetime: p.datetime, name_location: p.description, km_entry: parseFloat(p.kmChegada) }));
+
+                    await db.from('trip_events').insert(batch);
+                    showToast("Sincronização Concluída!");
+                    loadTrips();
+                } catch (err) { showToast("Erro na importação: JSON inválido", true); }
+            };
+            reader.readAsText(file);
         };
 
         async function loadTrips() {
             const { data } = await db.from('trips').select('*').order('start_datetime', { ascending: false });
-            if (data) {
-                document.getElementById('list-container').innerHTML = data.map(t => `
-                    <div onclick="openTrip('${t.id}')" class="card-soft p-8 cursor-pointer active:opacity-70 transition-opacity">
-                        <p class="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-2">${new Date(t.start_datetime).toLocaleDateString()}</p>
-                        <h3 class="text-xl text-white font-medium">${t.name}</h3>
-                    </div>
-                `).join('');
-            }
-            lucide.createIcons();
-        }
-
-        async function openTrip(id) {
-            toggleLoader(true);
-            const { data: trip } = await db.from('trips').select('*').eq('id', id).single();
-            const { data: evs } = await db.from('trip_events').select('*').eq('trip_id', id).order('datetime', { ascending: true });
-            document.getElementById('app-title').innerText = trip.name;
-            document.getElementById('back-btn').classList.remove('hidden');
-            document.getElementById('trips-view').classList.remove('active');
-            document.getElementById('details-view').classList.add('active');
-            document.getElementById('timeline-container').innerHTML = (evs || []).map(ev => `
-                <div class="card-soft p-6">
-                    <span class="text-[9px] uppercase font-bold text-slate-500">${ev.type} • ${new Date(ev.datetime).toLocaleTimeString()}</span>
-                    <h4 class="text-base text-white font-medium mt-1">${ev.name_location}</h4>
+            document.getElementById('list-container').innerHTML = (data || []).map(t => `
+                <div onclick="openTrip('${t.id}')" class="card-soft p-6 cursor-pointer mb-3">
+                    <h3 class="text-lg text-white font-medium">${t.name}</h3>
+                    <p class="text-[10px] text-blue-500 uppercase mt-1">${new Date(t.start_datetime).toLocaleDateString()}</p>
                 </div>
             `).join('');
             lucide.createIcons();
-            toggleLoader(false);
         }
 
-        async function handleLogout() { await db.auth.signOut(); window.location.reload(); }
+        window.openTrip = async (id) => {
+            const { data: evs } = await db.from('trip_events').select('*').eq('trip_id', id).order('datetime', { ascending: true });
+            document.getElementById('trips-view').classList.remove('active');
+            document.getElementById('details-view').classList.add('active');
+
+            document.getElementById('timeline-container').innerHTML = evs.map(ev => `
+                <div class="flex gap-4 relative z-10">
+                    <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400">
+                        <i data-lucide="${ev.type === 'abastecimento' ? 'fuel' : 'map-pin'}" class="w-4 h-4"></i>
+                    </div>
+                    <div class="flex-1 card-soft p-4">
+                        <span class="text-[8px] text-slate-500 font-bold uppercase">${new Date(ev.datetime).toLocaleTimeString()}</span>
+                        <h4 class="text-sm font-medium text-white">${ev.name_location}</h4>
+                        <p class="text-[10px] text-emerald-400 mt-2">R$ ${parseFloat(ev.amount || 0).toFixed(2)}</p>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        };
+
         function togglePass() { const p = document.getElementById('auth-password'); p.type = p.type === 'password' ? 'text' : 'password'; lucide.createIcons(); }
-        function closeTrip() { document.getElementById('back-btn').classList.add('hidden'); document.getElementById('details-view').classList.remove('active'); document.getElementById('trips-view').classList.add('active'); }
+        function closeTrip() { document.getElementById('details-view').classList.remove('active'); document.getElementById('trips-view').classList.add('active'); }
+        async function handleLogout() { await db.auth.signOut(); location.reload(); }
 
         window.onload = async () => {
             const { data: { session } } = await db.auth.getSession();
-            if (session) enterApp();
+            if (session) enterDashboard(session.user.email);
             lucide.createIcons();
         };
     </script>
